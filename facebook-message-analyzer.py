@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # # Facebook Message Analyzer
@@ -22,7 +22,7 @@ import datetime
 CURRENT_DIRECTORY = os.getcwd()
 NUMBER_TO_ANALYZE = 5000
 MESSAGE_THRESHOLD = 10
-MESSAGE_BOUND = 1000
+MESSAGE_BOUND = 10000000
 
 
 # In[6]:
@@ -30,7 +30,8 @@ MESSAGE_BOUND = 1000
 
 def get_json_data(chat):
     try:
-        json_location = CURRENT_DIRECTORY + "/messages/" + chat + "/message.json"
+        json_location = CURRENT_DIRECTORY + "/messages/" + chat + "/message_1.json"
+        
         with open(json_location) as json_file:
             json_data = json.load(json_file)
             return json_data
@@ -49,13 +50,13 @@ final_data_words = {}
 invalid_message_count = 0
 
 
-# In[9]:
+# In[8]:
 
 
 print('Analyzing ' + str(min(NUMBER_TO_ANALYZE, len(chats))) + ' chats...')
 
 for chat in chats:
-    url = chat + '/message.json'
+    url = chat + '/message_1.json'
     json_data = get_json_data(chat)
     print(chat)
     if json_data != None:
@@ -65,10 +66,11 @@ for chat in chats:
 
 sorted_chats.sort(reverse=True)
 
+
 print('Finished processing chats...')
 
 
-# In[10]:
+# In[9]:
 
 
 for i, (messages, chat, messages) in enumerate(sorted_chats):
@@ -104,7 +106,7 @@ print('Found ' + str(invalid_message_count) + ' invalid messages...')
 print('Found ' + str(len(sorted_chats)) + ' chats with ' + str(MESSAGE_THRESHOLD) + ' messages or more')
 
 
-# In[12]:
+# In[14]:
 
 
 def plot_num_messages(chat_number):
@@ -118,11 +120,13 @@ def plot_num_messages(chat_number):
     
 def plot_histogram_time(chat_number):
     person_to_times = final_data_times[chat_number]
+    print("test")
     pl.xlabel('Time')
     pl.ylabel('Number of Messages')
     pl.title('# of Messages Over Time')
     colors = ['b', 'r', 'c', 'm', 'y', 'k', 'w', 'g']
     for i , person in enumerate(person_to_times):
+        print(person)
         plotted_data = person_to_times[person]
         pl.hist(plotted_data, 100, alpha=0.3, label=person, facecolor=colors[i % len(colors)])
     pl.legend()
@@ -133,6 +137,7 @@ def plot_histogram_time(chat_number):
 def plot_histogram_words(chat_number):
     temp = {}
     for person in final_data_words[chat_number]:
+        print(person)
         temp[person] = np.average(final_data_words[chat_number][person])
     plotted_data = temp
     X = np.arange(len(plotted_data))
@@ -141,15 +146,96 @@ def plot_histogram_words(chat_number):
     pl.title('Average Word Count')
     pl.tight_layout()
     pl.show()
+
     
-def plot(chat_number):
-    plot_num_messages(chat_number)
-    plot_histogram_time(chat_number)
-    plot_histogram_words(chat_number)
+def steveli_veveyzhan_profanity_meter(chat_number):
+    chats = sorted_chats[chat_number]
+    swears = {"fuk": 0, "fuck": 0, "fucking": 0, "stfu":0, "fucker":0, "fk": 0, "shit":0, "sht":0, "bitch":0, "hell":0, "damn":0}
+    people = {}
+    barWidth = 0.25
+    
+    messages = chats[2]
+    i = 0
+    for message in messages: 
+        try:
+            message_content = message["content"]
+            time = message["timestamp_ms"]
+            
+            name = message["sender_name"]
+            words = message_content.split(); 
+            for word in words: 
+                if word in swears:
+                    people[name] = people.get(name,{"fuk": 0, "fuck": 0, "fucking": 0, "stfu":0, "fucker":0, "fk": 0, "shit":0, "sht":0, "bitch":0, "hell":0, "damn":0} )
+                    people[name][word] = people[name][word] + 1
+                    #swears[word] = swears[word] + 1            
+        except KeyError:
+            i = i + 1
+            
+    pl.xlabel('Swears')
+    pl.ylabel('Number of Swears')
+    colors = ['b', 'c', 'm', 'y', 'k', 'w', 'g']
+    steve = np.arange(len(people["Steve Li"]))
+    vv = [x + barWidth for x in steve]
+
+    pl.bar(steve, list(people["Steve Li"].values()), color = 'r', width = barWidth, bottom = 0.3, label = "Steve")
+    pl.bar(vv, list(people["Vevey Zhan"].values()), color = 'b', width = barWidth, bottom = 0.3, label = "Vevey")
+   
+    pl.xticks(steve, swears.keys(), rotation = 90)
+    pl.title('Profanity Meter')
+    pl.tight_layout()
+    pl.legend()
+    pl.show()
+    
+def day_of_the_week(chat_number):
+    chats = sorted_chats[chat_number]
+    messages = chats[2]
+    i = 0
+    days = {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}
+    weekdays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+    for message in messages: 
+        try:
+            
+            message_time = message["timestamp_ms"]
+            d = datetime.datetime.fromtimestamp(message_time/1000.0)
+            days[d.weekday()] += 1
+            
+        except KeyError:
+            i = i + 1
+        
+    X = np.arange(len(days))
+    pl.bar(X, list(days.values()), align='center', width=0.5, color = 'b', bottom = 0.3)
+    pl.xticks(X, weekdays, rotation = 90)
+    pl.title('Word Count per Day')
+    pl.xlabel('day of the week')
+    pl.ylabel('number of messages')
+    pl.tight_layout()
+    pl.show()
+    
+            
+    
+
+
+# In[15]:
+
+
+steveli_veveyzhan_profanity_meter(1)
+day_of_the_week(0)
 
 
 # In[ ]:
 
 
-plot(0)
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
 
